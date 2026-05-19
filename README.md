@@ -160,51 +160,6 @@ moodtunes/
 | Node.js | 18 |
 | npm | 9 |
 
-### 1 · Get Spotify credentials (free)
-
-1. Visit [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard)
-2. Click **Create App** → set Redirect URI to `http://localhost:8000`
-3. Copy your **Client ID** and **Client Secret**
-
-### 2 · Configure `.env`
-
-```bash
-cd backend
-cp .env.example .env
-# Open .env — paste your Client ID and Client Secret
-```
-
-### 3 · Run
-
-**Mac / Linux**
-```bash
-chmod +x start.sh && ./start.sh
-```
-
-**Windows**
-```bat
-start.bat
-```
-
-**Manual (two terminals)**
-```bash
-# Terminal 1 — Backend
-cd backend
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-python main.py
-# API  → http://localhost:8000
-# Docs → http://localhost:8000/docs
-
-# Terminal 2 — Frontend
-cd frontend
-npm install
-npm run dev
-# App  → http://localhost:5173
-```
-
-> ⚠️ **First run only:** DeepFace downloads model weights (~500 MB) on the first `/analyze` call. This is a one-time download — every call after is fast.
 
 ---
 
