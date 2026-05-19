@@ -7,6 +7,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Vite](https://img.shields.io/badge/Vite-5.2-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind-3.4-38BDF8?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Framer Motion](https://img.shields.io/badge/Framer_Motion-11-FF0055?style=for-the-badge&logo=framer&logoColor=white)](https://www.framer.com/motion/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
 <br/>
@@ -21,66 +22,102 @@
 
 ---
 
-## 📌 Overview
+## 📌 What Is MoodTunes?
 
-**MoodTunes** is a full-stack AI web app that:
+MoodTunes is a full-stack AI web application that detects your facial emotion in real time and recommends a matching Spotify track — without any manual input.
 
-1. **Reads your face** — accesses your webcam and captures a single frame
-2. **Detects your emotion** — runs DeepFace (RetinaFace + VGG-Face) on the frame in real time
-3. **Recommends a track** — maps the emotion to a music genre and fetches a live Spotify track
-4. **Plays it instantly** — embeds the Spotify player directly in the UI
+Here's how it works in 4 steps:
 
-No manual input. No genre selection. Just look at the camera.
+1. **Activate Camera** — opens your webcam with an animated scan overlay
+2. **Capture & Analyse** — takes a single frame, sends it to the Python backend
+3. **Detect Emotion** — DeepFace reads your face and returns one of 7 emotions with a confidence score
+4. **Play Music** — Spotify is queried for a genre-matched track, embedded directly in the UI
+
+No typing. No genre pickers. Just your face.
+
+> **Note on the live demo:** [moodtunes-alpha.vercel.app](https://moodtunes-alpha.vercel.app/) hosts the React frontend. The ML backend (FastAPI + DeepFace) must run locally to process images. Follow the [Quick Start](#-quick-start) below to get the full working experience.
 
 ---
 
 ## ✨ Features
 
-- 🎭 **7-emotion recognition** — Happy, Sad, Angry, Surprise, Fear, Disgust, Neutral
-- 🎵 **Live Spotify search** — real-time genre-based track fetch via Spotify Web API
-- 🎬 **In-page playback** — official Spotify iFrame embed (30-sec audio preview fallback)
-- 📊 **Confidence ring** — animated SVG ring shows model certainty percentage
-- 🌊 **Waveform visualiser** — 10-bar equaliser animation per track
-- 🎨 **Mood-reactive UI** — glow colour, border, ambient orb, and accents all shift per emotion
-- 🔒 **Privacy-first** — no frame is stored; analysed in-memory and discarded immediately
+| Feature | Description |
+|---|---|
+| 🎭 **7-emotion detection** | Happy · Sad · Angry · Surprise · Fear · Disgust · Neutral |
+| 🎵 **Live Spotify fetch** | Searches real-time trending tracks by mood-matched genre |
+| 🎬 **In-page playback** | Official Spotify iFrame embed with 30-sec audio preview fallback |
+| 📊 **Confidence ring** | Animated SVG ring shows model certainty as a percentage |
+| 🌊 **Waveform visualiser** | 10-bar animated equaliser reacts to each detected mood |
+| 🎨 **Mood-reactive UI** | Card glow, border, ambient orb, and all accents shift per emotion |
+| 🔒 **Privacy-first** | Frames decoded in RAM and discarded — never stored or logged |
+| 📱 **Responsive** | Works on desktop and mobile browsers |
 
 ---
 
-## 🎬 Demo
+## 🎨 UI & Design
 
-> 🌐 **[https://moodtunes-alpha.vercel.app/](https://moodtunes-alpha.vercel.app/)**
+The interface uses a **dark glassmorphic** design system built with Tailwind CSS and Framer Motion:
 
-| Activate Camera | Capture & Analyse | Result |
-|:-:|:-:|:-:|
-| Click to open webcam stream with live scan overlay | One click captures + sends frame to ML backend | Emotion pill · confidence score · Spotify embed |
+- **Background** — near-black `#070a10` with two slow-drifting ambient colour orbs
+- **Cards** — frosted glass with `backdrop-filter: blur(32px)` and semi-transparent borders
+- **Mood colours** — every accent (glow, ring, waveform, scan-line, orb) derives from one `EMOTION_CONFIG` object and transitions smoothly on result
+- **Typography** — `JetBrains Mono` for all UI text, `Syne` for the main heading
+- **Noise grain** — subtle SVG fractal noise overlay for a tactile, analogue texture
+- **Scan-line overlay** — animated horizontal line + corner brackets pulse on the live camera feed
+
+| Emotion | Accent Colour | Label |
+|---|---|---|
+| 😊 Happy | `#fbbf24` Gold | EUPHORIC |
+| 😢 Sad | `#60a5fa` Blue | MELANCHOLIC |
+| 😠 Angry | `#f87171` Red | FIERCE |
+| 😲 Surprise | `#a78bfa` Violet | ELECTRIC |
+| 😨 Fear | `#34d399` Emerald | TENSE |
+| 🤢 Disgust | `#fb923c` Orange | RAW |
+| 😐 Neutral | `#94a3b8` Slate | CALM |
 
 ---
 
 ## 🧠 Architecture
 
 ```
-Browser (React + Vite)
-│
-│  getUserMedia() → <video> stream
-│  canvas.drawImage() → toDataURL("image/jpeg")
-│  base64 JPEG
-│
-│  ──── POST /analyze ────────────────────────────►
-│                                                  FastAPI (Python)
-│                                                  │
-│                                                  ├─ cv2.imdecode()
-│                                                  ├─ CLAHE pre-process (LAB colour space)
-│                                                  ├─ DeepFace.analyze() [RetinaFace]
-│                                                  ├─ dominant_emotion + confidence %
-│                                                  ├─ emotion → genre mapping
-│                                                  └─ Spotipy.search() → random track
-│
-│  ◄─── JSON response ───────────────────────────
-│
-│  { emotion, confidence, track_name, artist,
-│    album, album_art, spotify_id, link }
-│
-│  Framer Motion reveal → Emotion pill + Spotify iFrame
+┌──────────────────────────────────────────────────────────────┐
+│                   BROWSER  (React + Vite)                    │
+│                                                              │
+│  getUserMedia() ──► <video> stream  (CSS mirrored for UX)    │
+│  canvas.translate + scale(-1,1)  ──► un-mirror for ML        │
+│  canvas.toDataURL("image/jpeg") ──► strip data-URI prefix    │
+│                                                              │
+│              POST /analyze  { image: base64 }                │
+└──────────────────────────┬───────────────────────────────────┘
+                           │
+                           ▼
+┌──────────────────────────────────────────────────────────────┐
+│                  BACKEND  (FastAPI + Python)                  │
+│                                                              │
+│  base64 ──► cv2.imdecode() ──► numpy array                   │
+│  CLAHE pre-process on LAB L-channel (8×8 tiles)              │
+│  — normalises uneven webcam lighting before inference        │
+│                                                              │
+│  DeepFace.analyze(detector_backend="retinaface")             │
+│  ──► dominant_emotion  +  confidence %                       │
+│                                                              │
+│  emotion ──► random genre from EMOTION_GENRE_MAP             │
+│  Spotipy.search(genre, offset=random(0,100))                 │
+│  prefer tracks with preview_url ──► random.choice()          │
+└──────────────────────────┬───────────────────────────────────┘
+                           │
+          JSON { emotion, confidence, track_name,
+                 artist, album, album_art,
+                 spotify_id, link, preview_url }
+                           │
+                           ▼
+┌──────────────────────────────────────────────────────────────┐
+│                   BROWSER  (React)                           │
+│                                                              │
+│  Framer Motion AnimatePresence ──► phase reveal animation    │
+│  Emotion pill + ConfidenceRing SVG + Waveform bars           │
+│  Spotify iFrame embed  /  <audio> 30-sec preview fallback    │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -90,41 +127,42 @@ Browser (React + Vite)
 ```
 moodtunes/
 ├── README.md
-├── start.sh                  ← Mac/Linux one-command launcher
-├── start.bat                 ← Windows one-command launcher
+├── start.sh                    ← Mac / Linux one-command launcher
+├── start.bat                   ← Windows one-command launcher
+├── .gitignore
 │
 ├── backend/
-│   ├── main.py               ← FastAPI · DeepFace · cv2 · Spotipy
+│   ├── main.py                 ← FastAPI · DeepFace · cv2 · Spotipy
 │   ├── requirements.txt
-│   └── .env.example          ← rename → .env, add Spotify keys
+│   └── .env.example            ← rename to .env and fill Spotify keys
 │
 └── frontend/
-    ├── index.html
-    ├── vite.config.js        ← proxies /analyze → localhost:8000
-    ├── tailwind.config.js
+    ├── index.html              ← Vite entry + Google Fonts
+    ├── vite.config.js          ← proxies /analyze + /health → :8000
+    ├── tailwind.config.js      ← custom fonts + pulse_glow keyframe
     ├── postcss.config.js
     ├── package.json
     └── src/
-        ├── main.jsx
-        ├── App.jsx            ← state machine + all UI components
-        └── index.css          ← Tailwind base + waveform keyframes
+        ├── main.jsx            ← React 18 createRoot
+        ├── App.jsx             ← 5-phase state machine + all components
+        └── index.css           ← Tailwind layers · waveform · noise grain
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
-| Tool | Version |
+| Tool | Minimum |
 |------|---------|
-| Python | ≥ 3.10 |
-| Node.js | ≥ 18 |
-| npm | ≥ 9 |
+| Python | 3.10 |
+| Node.js | 18 |
+| npm | 9 |
 
-### 1 · Spotify Credentials (free)
+### 1 · Get Spotify credentials (free)
 
-1. Go to [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard)
+1. Visit [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard)
 2. Click **Create App** → set Redirect URI to `http://localhost:8000`
 3. Copy your **Client ID** and **Client Secret**
 
@@ -133,7 +171,7 @@ moodtunes/
 ```bash
 cd backend
 cp .env.example .env
-# paste your Client ID and Client Secret into .env
+# Open .env — paste your Client ID and Client Secret
 ```
 
 ### 3 · Run
@@ -148,33 +186,36 @@ chmod +x start.sh && ./start.sh
 start.bat
 ```
 
-**Manual**
+**Manual (two terminals)**
 ```bash
 # Terminal 1 — Backend
 cd backend
-python -m venv .venv && source .venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python main.py
-# → http://localhost:8000
+# API  → http://localhost:8000
+# Docs → http://localhost:8000/docs
 
 # Terminal 2 — Frontend
 cd frontend
-npm install && npm run dev
-# → http://localhost:5173
+npm install
+npm run dev
+# App  → http://localhost:5173
 ```
 
-> ⚠️ **First run:** DeepFace downloads model weights (~500 MB). This only happens once.
+> ⚠️ **First run only:** DeepFace downloads model weights (~500 MB) on the first `/analyze` call. This is a one-time download — every call after is fast.
 
 ---
 
 ## 🗺️ Emotion → Genre Mapping
 
-| Emotion | Genres | Vibe |
-|---------|--------|------|
+| Emotion | Genres Searched | Vibe |
+|---------|----------------|------|
 | 😊 Happy | pop · dance · feel-good · summer | High-energy, upbeat, major key |
 | 😢 Sad | sad · acoustic · piano · rainy-day | Slow, introspective, minor key |
-| 😠 Angry | metal · hard-rock · punk · rage | Distorted, aggressive, fast |
-| 😲 Surprise | electronic · edm · synth-pop · electro | Energetic, unpredictable drops |
+| 😠 Angry | metal · hard-rock · punk · rage | Distorted, aggressive, fast BPM |
+| 😲 Surprise | electronic · edm · synth-pop · electro | Energetic, unexpected drops |
 | 😨 Fear | ambient · dark-ambient · cinematic · atmospheric | Sparse, tense, unsettling |
 | 🤢 Disgust | industrial · noise · experimental · alternative | Abrasive, unconventional |
 | 😐 Neutral | indie · lo-fi · chill · study | Relaxed, melodic, background-friendly |
@@ -185,14 +226,12 @@ npm install && npm run dev
 
 ### `POST /analyze`
 
-**Request body**
+**Request**
+```json
+{ "image": "<raw base64 JPEG — no data:image/jpeg;base64, prefix>" }
+```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `image` | `string` | Raw base64 JPEG — **no** `data:image/jpeg;base64,` prefix |
-
-**Response `200`**
-
+**Response `200 OK`**
 ```json
 {
   "emotion":     "happy",
@@ -209,17 +248,17 @@ npm install && npm run dev
 
 **Errors**
 
-| Code | Reason |
-|------|--------|
+| Code | Cause |
+|------|-------|
 | `400` | Image could not be decoded |
-| `422` | No face detected in frame |
-| `502` | Spotify returned no results — check credentials |
+| `422` | No face detected in the frame |
+| `502` | Spotify returned no tracks — check credentials |
 
 ### `GET /health`
-
 ```json
 { "status": "ok" }
 ```
+Polled by the frontend on load to show or hide the **"BACKEND OFFLINE"** warning banner.
 
 ---
 
@@ -227,24 +266,25 @@ npm install && npm run dev
 
 ### Frontend
 
-| | Library | Purpose |
-|--|---------|---------|
-| ⚛️ | React 18 | UI components + hooks state machine |
-| ⚡ | Vite 5 | Dev server · HMR · `/analyze` proxy |
-| 🎨 | Tailwind CSS 3 | Utility styling + custom keyframes |
-| 🎞️ | Framer Motion 11 | Layout animations · scan-line · SVG spring |
-| 🔤 | JetBrains Mono + Syne | Monospace UI + display heading fonts |
+| Library | Version | Role |
+|---------|---------|------|
+| React | 18.3 | UI components + hooks state machine |
+| Vite | 5.2 | Dev server · HMR · `/analyze` proxy |
+| Tailwind CSS | 3.4 | Utility styling + custom keyframes |
+| Framer Motion | 11 | `AnimatePresence` · layout spring · SVG ring · scan-line |
+| JetBrains Mono | — | Monospace UI typeface |
+| Syne | — | Display heading typeface |
 
 ### Backend
 
-| | Library | Purpose |
-|--|---------|---------|
-| 🚀 | FastAPI | Async REST API framework |
-| 🦄 | Uvicorn | ASGI server with hot-reload |
-| 🧠 | DeepFace | Emotion recognition (VGG-Face backbone) |
-| 👁️ | OpenCV (cv2) | Image decode + CLAHE pre-processing |
-| 🎵 | Spotipy | Spotify Web API client |
-| 🔐 | python-dotenv | `.env` credential management |
+| Library | Version | Role |
+|---------|---------|------|
+| FastAPI | 0.111 | Async REST framework |
+| Uvicorn | 0.29 | ASGI server with hot-reload |
+| DeepFace | 0.0.93 | Emotion recognition (VGG-Face backbone) |
+| OpenCV | 4.9 | Image decode + CLAHE contrast normalisation |
+| Spotipy | 2.23 | Spotify Web API client |
+| python-dotenv | 1.0.1 | `.env` credential loading |
 
 ---
 
@@ -252,51 +292,54 @@ npm install && npm run dev
 
 | Problem | Fix |
 |---------|-----|
-| **"BACKEND OFFLINE"** pill in UI | Run `python main.py` inside `/backend` |
-| **"No face detected"** error | Improve lighting · try `detector_backend="opencv"` for faster, less strict detection |
-| **Spotify returns no tracks** | Verify `.env` has correct Client ID + Secret |
-| **First call is very slow** | DeepFace is downloading model weights — wait once |
-| **CORS error in console** | Ensure backend is on `:8000` and Vite on `:5173` |
+| **"BACKEND OFFLINE"** banner shows | Run `python main.py` in the `/backend` folder |
+| **"No face detected"** error | Improve lighting · switch `detector_backend="opencv"` in `main.py` for looser detection |
+| **Spotify returns no tracks** | Check Client ID + Secret are correct in `.env` |
+| **First call is very slow (30–60s)** | DeepFace is downloading model weights — wait once |
+| **CORS error in browser console** | Keep backend on `:8000` and frontend on `:5173` |
+| **Blank Spotify embed** | Non-standard track URL — 30-sec audio preview fallback activates automatically |
 
 ---
 
 ## ⚙️ Customisation
 
-**Swap detector backend** (speed vs accuracy) in `backend/main.py`:
-
+**Switch DeepFace detector** in `backend/main.py`:
 ```python
-detector_backend = "opencv"      # fastest
-detector_backend = "ssd"         # balanced
-detector_backend = "retinaface"  # most accurate (default)
-detector_backend = "mtcnn"       # good alternative
+detector_backend = "retinaface"  # default — most accurate
+detector_backend = "mtcnn"       # good balance of speed + accuracy
+detector_backend = "ssd"         # faster
+detector_backend = "opencv"      # fastest, least strict
 ```
 
-**Add genres** by extending the map in `backend/main.py`:
-
+**Add genres** in `backend/main.py`:
 ```python
-"happy": ["pop", "dance", "feel-good", "summer", "k-pop", "latin"],
+EMOTION_GENRE_MAP = {
+    "happy": ["pop", "dance", "feel-good", "summer", "k-pop", "latin"],
+    "sad":   ["sad", "acoustic", "piano", "rainy-day", "singer-songwriter"],
+}
 ```
 
 ---
 
 ## 🔒 Privacy
 
-- Webcam frames are **never stored** — decoded in RAM, analysed, discarded
+- Webcam frames are **never stored** — decoded in RAM, analysed, immediately discarded
 - No user accounts, no cookies, no analytics
-- Camera permission is released immediately after capture
-- No Spotify user account is linked — only public catalogue data is fetched
+- Camera permission is released as soon as the frame is captured
+- No Spotify user account is linked — only the public catalogue API is used
 
 ---
 
 ## 🤝 Contributing
 
-Pull requests are welcome! For major changes, please open an issue first to discuss what you'd like to change.
+Pull requests are welcome. For major changes, please open an issue first to discuss what you'd like to change.
 
-1. Fork the repo
-2. Create your feature branch: `git checkout -b feature/your-feature`
-3. Commit your changes: `git commit -m 'Add your feature'`
-4. Push to the branch: `git push origin feature/your-feature`
-5. Open a pull request
+```bash
+git checkout -b feature/your-feature
+git commit -m "feat: your change"
+git push origin feature/your-feature
+# Then open a Pull Request
+```
 
 ---
 
